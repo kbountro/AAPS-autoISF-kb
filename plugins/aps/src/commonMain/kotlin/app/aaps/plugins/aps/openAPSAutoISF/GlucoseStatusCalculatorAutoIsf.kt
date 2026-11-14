@@ -63,10 +63,14 @@ class GlucoseStatusCalculatorAutoIsf(
         // as the source stays off-phase (issues #3688, #5148). The raw stream has no such gap - every
         // point in it is a real measurement - so there is nothing to refuse, but only a source this app
         // already trusts is used: the advanced-filtering list or the raw-observation list.
+        // AutoISF fork: or any source, when the user has switched on "Treat this CGM as 1-minute raw data"
+        // for a CGM that is on neither list. The spacing check below still applies, so a 5 minute CGM
+        // stays on the grid even with the switch on.
         var useRawFit = false
         var fslMinDur = 15
         if (orig.size > 2) {
-            val sourceTrusted = orig[0].sourceSensor.advancedFilteringSupported() || orig[0].sourceSensor.rawObservationEstimatorSupported()
+            val sourceTrusted = orig[0].sourceSensor.advancedFilteringSupported() || orig[0].sourceSensor.rawObservationEstimatorSupported() ||
+                preferences.get(BooleanKey.ApsAutoIsfForce1MinuteRaw)
             val recentSpacingMs = (orig[0].timestamp - orig[2].timestamp) / 2.0
             if (sourceTrusted && recentSpacingMs < 4 * 60_000) {
                 useRawFit = true

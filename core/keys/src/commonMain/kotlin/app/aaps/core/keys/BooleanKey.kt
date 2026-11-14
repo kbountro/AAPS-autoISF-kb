@@ -201,6 +201,15 @@ enum class BooleanKey(
         KeysStrings.pref_summary_autoisf_parabola_smoothed,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+    // AutoISF fork: the raw 1 minute path for acce_ISF and dura_ISF also for a CGM that is on neither trusted list
+    ApsAutoIsfForce1MinuteRaw(
+        "autoisf_force_1min_raw",
+        false,
+        KeysStrings.pref_title_autoisf_force_1min_raw,
+        KeysStrings.pref_summary_autoisf_force_1min_raw,
+        defaultedBySM = true,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
     ApsAutoIsfSmbOnEvenTarget(
         "Enable alternative activation of SMB always",
         false,

@@ -1079,6 +1079,7 @@ open class OpenAPSAutoISFPlugin(
                     DoubleKey.ApsAutoIsfMax,
                     DoubleKey.ApsAutoIsfBgAccelWeight,
                     DoubleKey.ApsAutoIsfBgBrakeWeight,
+                    BooleanKey.ApsAutoIsfForce1MinuteRaw,
                     BooleanKey.ApsAutoIsfParabolaSmoothed,
                     IntKey.ApsAutoIsfParabolaMinMinutes,
                     DoubleKey.ApsAutoIsfLowBgWeight,

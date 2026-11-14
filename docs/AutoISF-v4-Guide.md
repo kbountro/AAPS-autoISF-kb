@@ -74,6 +74,10 @@ graph) is **only shown when AutoISF is the active APS**.
 - **Default as in the original:** the parabola is fitted to the raw values.
 - **Switch "Parabola on smoothed values":** the parabola uses the UKF-smoothed values instead. Calmer, but
   later. Needs UKF and a 1-minute CGM, otherwise the raw values are used.
+- **Switch "Treat this CGM as 1-minute raw data"** (off by default): the parabola and dura_ISF use the raw
+  values only from sensors that AAPS trusts (for example Libre 2/3, Syai/Ottai, Sibionics, AiDex). Switch it
+  on if your CGM sends about every minute but is not on that list. The raw values are still only used while
+  the CGM sends faster than every 4 minutes, so nothing changes for a 5-minute CGM.
 - **Slider "Shortest parabola":** 5–20 minutes, 10 as in the original.
 - The APS tab says which values the parabola used.
 

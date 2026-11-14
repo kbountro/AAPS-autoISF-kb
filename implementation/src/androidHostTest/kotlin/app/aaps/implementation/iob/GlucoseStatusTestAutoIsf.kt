@@ -35,6 +35,7 @@ class GlucoseStatusTestAutoIsf : TestBaseWithProfile() {
         // AutoISF fork settings at their defaults: the original AutoISF
         whenever(preferences.get(IntKey.ApsAutoIsfParabolaMinMinutes)).thenReturn(10)
         whenever(preferences.get(BooleanKey.ApsAutoIsfParabolaSmoothed)).thenReturn(false)
+        whenever(preferences.get(BooleanKey.ApsAutoIsfForce1MinuteRaw)).thenReturn(false)
     }
 
     @Test fun toStringShouldBeOverloaded() {
@@ -134,6 +135,46 @@ class GlucoseStatusTestAutoIsf : TestBaseWithProfile() {
                 GV(id = 0, timestamp = 1514766900000, raw = 0.0, value = 214.0, trendArrow = TrendArrow.FLAT, noise = 0.0, sourceSensor = SourceSensor.DEXCOM_G6),
                 GV(id = 0, timestamp = 1514766900000 - T.mins(6).msecs(), raw = 0.0, value = 226.0, trendArrow = TrendArrow.FLAT, noise = 0.0, sourceSensor = SourceSensor.DEXCOM_G6),
                 GV(id = 0, timestamp = 1514766900000 - T.mins(12).msecs(), raw = 0.0, value = 228.0, trendArrow = TrendArrow.FLAT, noise = 0.0, sourceSensor = SourceSensor.DEXCOM_G6),
+            )
+        )
+        val glucoseStatus = GlucoseStatusCalculatorAutoIsf(aapsLogger, iobCobCalculator, dateUtil, deltaCalculator, preferences).getGlucoseStatusData(false)!!
+        assertThat(glucoseStatus.bgAcceleration).isWithin(0.01).of(-0.21)
+        assertThat(glucoseStatus.duraISFminutes).isEqualTo(35.0)
+    }
+
+    // AutoISF fork: with "Treat this CGM as 1-minute raw data" on, a fast source that is on neither trusted
+    // list takes the raw path too, and gives exactly what a trusted source gives with the same readings.
+    @Test fun theSwitchLetsAFastUntrustedSourceUseTheRawStream() {
+        whenever(autosensDataStore.getStatusDataCopy()).thenReturn(generateFullyGapFlaggedBgData())
+        val calculator = GlucoseStatusCalculatorAutoIsf(aapsLogger, iobCobCalculator, dateUtil, deltaCalculator, preferences)
+
+        whenever(autosensDataStore.getBgReadingsDataTableCopy()).thenReturn(generateThreeMinuteRawStream())
+        val trusted = calculator.getGlucoseStatusData(false)!!
+
+        whenever(preferences.get(BooleanKey.ApsAutoIsfForce1MinuteRaw)).thenReturn(true)
+        whenever(autosensDataStore.getBgReadingsDataTableCopy()).thenReturn(generateThreeMinuteRawStream(sourceSensor = SourceSensor.UNKNOWN))
+        val forced = calculator.getGlucoseStatusData(false)!!
+
+        assertThat(forced.parabolaMinutes).isGreaterThan(0.0)
+        assertThat(forced.duraISFminutes).isGreaterThan(0.0)
+        assertThat(forced.bgAcceleration).isNotEqualTo(0.0)
+        assertThat(forced.bgAcceleration).isWithin(1e-9).of(trusted.bgAcceleration)
+        assertThat(forced.corrSqu).isWithin(1e-9).of(trusted.corrSqu)
+        assertThat(forced.parabolaMinutes).isWithin(1e-9).of(trusted.parabolaMinutes)
+        assertThat(forced.duraISFminutes).isWithin(1e-9).of(trusted.duraISFminutes)
+        assertThat(forced.duraISFaverage).isWithin(1e-9).of(trusted.duraISFaverage)
+    }
+
+    // The switch does not skip the spacing check: a source on neither list that is slower than ~4 minutes
+    // stays on the bucketed grid, with the same result as a slow trusted source.
+    @Test fun theSwitchKeepsASlowUntrustedSourceOnTheBucketedGrid() {
+        whenever(preferences.get(BooleanKey.ApsAutoIsfForce1MinuteRaw)).thenReturn(true)
+        whenever(autosensDataStore.getStatusDataCopy()).thenReturn(generateValidBgData())
+        whenever(autosensDataStore.getBgReadingsDataTableCopy()).thenReturn(
+            listOf(
+                GV(id = 0, timestamp = 1514766900000, raw = 0.0, value = 214.0, trendArrow = TrendArrow.FLAT, noise = 0.0, sourceSensor = SourceSensor.UNKNOWN),
+                GV(id = 0, timestamp = 1514766900000 - T.mins(6).msecs(), raw = 0.0, value = 226.0, trendArrow = TrendArrow.FLAT, noise = 0.0, sourceSensor = SourceSensor.UNKNOWN),
+                GV(id = 0, timestamp = 1514766900000 - T.mins(12).msecs(), raw = 0.0, value = 228.0, trendArrow = TrendArrow.FLAT, noise = 0.0, sourceSensor = SourceSensor.UNKNOWN),
             )
         )
         val glucoseStatus = GlucoseStatusCalculatorAutoIsf(aapsLogger, iobCobCalculator, dateUtil, deltaCalculator, preferences).getGlucoseStatusData(false)!!
